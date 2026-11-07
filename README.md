@@ -20,6 +20,10 @@ styles). This library does the page side:
   - Text with only shared characters (東京大学) follows its page: its `lang`, or its other paragraphs.
 
   It's what lets two extensions share a page without highlighting the same text.
+- **A report on a page** (`pageReport.ts`): how it was told apart, for an extension's popup. It
+  covers the page's language and why, its paragraphs by class, what's highlighted and who it's
+  shared with, in words both extensions use. It can also outline each paragraph on the page in
+  its class's colour.
 
 It's plain DOM and TypeScript, with no extension APIs and no framework. It ships as TypeScript source
 (no build step): the extensions' bundler (Vite / WXT) compiles it.

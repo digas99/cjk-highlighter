@@ -185,8 +185,10 @@ export type LanguageGateOptions = {
 	unclear: LanguageChoice;
 	/** the page's language became clear: the paragraphs decided without it, to redo */
 	onPageLanguage?: (paragraphs: Element[]) => void;
-	/** keep each paragraph's class, for summary() (development: languageDebug.ts) */
+	/** keep each paragraph's class, for summary() (a report on the page: pageReport.ts) */
 	track?: boolean;
+	/** the page's gate, whose language what's read follows (activePageLanguage); false: a report's own */
+	register?: boolean;
 };
 
 export type LanguageSummary = {
@@ -246,6 +248,7 @@ export class LanguageGate {
 
 	constructor(options: LanguageGateOptions) {
 		this.options = options;
+		if (options.register === false) return;
 		activeGate = this;
 		window.setTimeout(notifyPageLanguage, 0);
 	}
@@ -255,8 +258,8 @@ export class LanguageGate {
 		return chinese === 'skip' || unclear === 'skip' || japanese === 'skip';
 	}
 
-	/** The page's language, before highlighting: its first paragraphs, classified. */
-	seed(root: Element): void {
+	/** The page's language, before highlighting: its first paragraphs (`limit` characters), classified. */
+	seed(root: Element, limit = MAX_SEED_TEXT): void {
 		const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
 			acceptNode: node => {
 				if (node.nodeType === Node.TEXT_NODE) return NodeFilter.FILTER_ACCEPT;
@@ -264,7 +267,7 @@ export class LanguageGate {
 			},
 		});
 		let read = 0;
-		for (let node = walker.nextNode(); node && read < MAX_SEED_TEXT; node = walker.nextNode()) {
+		for (let node = walker.nextNode(); node && read < limit; node = walker.nextNode()) {
 			const text = node.nodeValue ?? '';
 			if (!text.trim()) continue;
 			read += text.length;

@@ -182,20 +182,6 @@ export function shareChoices(own: LanguageChoices, role: PeerRole, partner: Peer
 	return shared;
 }
 
-/** For the classification panel: who this page is shared with. */
-export function describePeers(peers: PagePeers): string {
-	const partner = peers.partner();
-	if (partner) {
-		const names: Record<TextKind, string> = { japanese: 'Japanese', chinese: 'Chinese', unclear: 'could be either' };
-		const takes = (Object.keys(TEXT_OWNER) as TextKind[]).filter(text => partner.choices[text] === 'highlight').map(text => names[text]);
-		const versions = partner.classifier !== CLASSIFIER_VERSION ? ` · its classifier is v${partner.classifier}, this one's v${CLASSIFIER_VERSION}` : '';
-		return `Sharing the page with ${partner.name} (it highlights: ${takes.join(', ') || 'nothing'})${versions}`;
-	}
-	const others = peers.peers();
-	if (!others.length) return 'Alone on this page';
-	return `Not sharing: ${others.map(peer => `${peer.name}${peer.share ? '' : ' (sharing off)'}${peer.protocol !== PROTOCOL_VERSION ? ` (protocol v${peer.protocol})` : ''}`).join(', ')}`;
-}
-
 /* ------------------------------------------------------------------ */
 /* Finding the other extension (its id), and talking to it            */
 /* ------------------------------------------------------------------ */
@@ -240,8 +226,18 @@ export type PartnerRequest =
 	| { type: typeof PARTNER_MESSAGE; action: 'about' }
 	| { type: typeof PARTNER_MESSAGE; action: 'choose'; text: TextKind; choice: LanguageChoice };
 
-/** The answer to `about`: who it is and what it highlights. */
-export type PartnerAbout = { protocol: number; name: string; role: PeerRole; choices: LanguageChoices };
+/** Who's using an extension, for the other's popup to show (that they found each other). */
+export type PartnerProfile = {
+	/** the account's name */
+	name: string | null;
+	/** a picture's address (or a data: URL) */
+	avatar: string | null;
+	/** "Level 20", "Rank 12" */
+	level: string | null;
+};
+
+/** The answer to `about`: who it is and what it highlights, and whose it is (when known). */
+export type PartnerAbout = { protocol: number; name: string; role: PeerRole; choices: LanguageChoices; profile?: PartnerProfile | null };
 
 /** A request from the other extension, checked (null: not one). */
 export function parsePartnerRequest(message: unknown): PartnerRequest | null {

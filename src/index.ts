@@ -39,7 +39,7 @@ export {
 	type LanguageSummary,
 	type TextLanguage,
 } from './textLanguage';
-export { mountLanguageDebug, unmountLanguageDebug, type LanguageDebugOptions } from './languageDebug';
+export { LANGUAGE_COLORS, describeReport, outlineParagraphs, reportPageLanguage, type PageLanguageReport } from './pageReport';
 export {
 	CLASSIFIER_VERSION,
 	PARTNER_MESSAGE,
@@ -48,13 +48,13 @@ export {
 	TEXT_OWNER,
 	announcePresence,
 	defaultChoices,
-	describePeers,
 	oppositeChoice,
 	parsePartnerRequest,
 	shareChoices,
 	type LanguageChoices,
 	type PartnerAbout,
 	type PartnerIdentity,
+	type PartnerProfile,
 	type PartnerRequest,
 	type PeerInfo,
 	type PeerRole,
