@@ -75,6 +75,24 @@ describe('textByLanguage', () => {
 	});
 });
 
+describe('textByLanguage, for Chinese (Japanese left out)', () => {
+	const rules: LanguageRules = { japaneseKanji, japanese: 'skip', chinese: 'highlight', unclear: 'highlight' };
+
+	it('leaves Japanese paragraphs out and keeps Chinese ones', () => {
+		const text = ['今日は天気がいいので、公園へ行きました。', '这是一个很好的问题。'].join('\n');
+		expect(textByLanguage(text, rules, null).text).toBe('这是一个很好的问题。');
+	});
+
+	it('a mixed paragraph keeps its Chinese sentences', () => {
+		expect(textByLanguage('他说：「ありがとうございます」。这是日语，意思是谢谢。', rules, null).text).toBe('这是日语，意思是谢谢。');
+	});
+
+	it('unclear text on a Japanese page is left out', () => {
+		const page = ['東京大学', '今日は天気がいいので、友達と一緒に公園へ行きました。'].join('\n');
+		expect(textByLanguage(page, rules, null)).toMatchObject({ page: 'japanese', text: '' });
+	});
+});
+
 describe('sentenceKept', () => {
 	const rules: LanguageRules = { japaneseKanji, chinese: 'skip', unclear: 'skip' };
 	it('as the highlight would', () => {

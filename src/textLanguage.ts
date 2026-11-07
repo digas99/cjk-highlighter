@@ -178,6 +178,8 @@ export function languageOfAttribute(element: Element): 'japanese' | 'chinese' | 
 export type LanguageGateOptions = {
 	/** the kanji Japanese uses (Jōyō, Jinmeiyō, WaniKani's) */
 	japaneseKanji: Set<string>;
+	/** Japanese text: highlighted unless 'skip' (an extension for Chinese may leave it alone) */
+	japanese?: LanguageChoice;
 	chinese: LanguageChoice;
 	/** what's done with unclear text when its page doesn't tell (this site's, exceptions applied) */
 	unclear: LanguageChoice;
@@ -197,6 +199,7 @@ export type LanguageSummary = {
 	paragraphs: Record<TextLanguage, number>;
 	/** the unclear ones decided by the choice (the page didn't tell) */
 	byChoice: number;
+	japanese: LanguageChoice;
 	chinese: LanguageChoice;
 	unclear: LanguageChoice;
 };
@@ -248,8 +251,8 @@ export class LanguageGate {
 	}
 
 	/** Without anything to leave out, there's nothing to classify. */
-	static needed(chinese: LanguageChoice, unclear: LanguageChoice): boolean {
-		return chinese === 'skip' || unclear === 'skip';
+	static needed(chinese: LanguageChoice, unclear: LanguageChoice, japanese: LanguageChoice = 'highlight'): boolean {
+		return chinese === 'skip' || unclear === 'skip' || japanese === 'skip';
 	}
 
 	/** The page's language, before highlighting: its first paragraphs, classified. */
@@ -291,7 +294,7 @@ export class LanguageGate {
 		// both languages: sentence by sentence (a Japanese quote in a Chinese paragraph)
 		const allowed = sentenceRanges(text).map(([start, end]) => {
 			const sentence = classifyText(text.slice(start, end), this.options.japaneseKanji);
-			return { start, end, allowed: this.allows(sentence === 'mixed' ? 'japanese' : sentence, paragraph) };
+			return { start, end, allowed: this.allows(sentence, paragraph) };
 		});
 		return matches.filter(match => allowed.find(range => match.start >= range.start && match.start < range.end)?.allowed ?? false);
 	}
@@ -321,6 +324,7 @@ export class LanguageGate {
 			tally: { ...this.tally },
 			paragraphs,
 			byChoice: [...this.provisional].filter(paragraph => paragraph.isConnected).length,
+			japanese: this.options.japanese ?? 'highlight',
 			chinese: this.options.chinese,
 			unclear: this.options.unclear,
 		};
@@ -332,7 +336,9 @@ export class LanguageGate {
 	}
 
 	private allows(language: TextLanguage | null, paragraph: Element | null): boolean {
-		if (language === null || language === 'japanese' || language === 'mixed') return true;
+		// a sentence with both (a mixed paragraph is split into its sentences first)
+		if (language === null || language === 'mixed') return true;
+		if (language === 'japanese') return this.options.japanese !== 'skip';
 		if (language === 'chinese') return this.options.chinese === 'highlight';
 		// unclear: its context's language, else the choice for this site
 		const context = (paragraph && languageOfAttribute(paragraph)) ?? this.pageLanguage;
@@ -392,6 +398,8 @@ export class LanguageGate {
 export type LanguageRules = {
 	/** the kanji Japanese uses (Jōyō, Jinmeiyō…): the others are Chinese-only */
 	japaneseKanji: Set<string>;
+	/** Japanese text: kept unless 'skip' */
+	japanese?: LanguageChoice;
 	chinese: LanguageChoice;
 	/** this site's choice (the sites listed go the other way) */
 	unclear: LanguageChoice;
@@ -399,7 +407,8 @@ export type LanguageRules = {
 
 /** Whether text of this language is kept (highlighted, read), on a page of `page`'s language. */
 function keeps(language: TextLanguage | null, rules: LanguageRules, page: 'japanese' | 'chinese' | null): boolean {
-	if (language === null || language === 'japanese' || language === 'mixed') return true;
+	if (language === null || language === 'mixed') return true;
+	if (language === 'japanese') return rules.japanese !== 'skip';
 	if (language === 'chinese') return rules.chinese === 'highlight';
 	if (page) return keeps(page, rules, null);
 	return rules.unclear === 'highlight';
@@ -437,7 +446,7 @@ export function textByLanguage(
 			.map(([start, end]) => line.slice(start, end))
 			.filter(sentence => {
 				const language = classifyText(sentence, rules.japaneseKanji);
-				return keeps(language === 'mixed' ? 'japanese' : language, rules, page);
+				return keeps(language, rules, page);
 			});
 		if (sentences.length) kept.push(sentences.join(''));
 	}
@@ -446,6 +455,5 @@ export function textByLanguage(
 
 /** A sentence taken from a page is kept as the highlight would be (`page`: its page's language). */
 export function sentenceKept(sentence: string, rules: LanguageRules, page: 'japanese' | 'chinese' | null): boolean {
-	const language = classifyText(sentence, rules.japaneseKanji);
-	return keeps(language === 'mixed' ? 'japanese' : language, rules, page);
+	return keeps(classifyText(sentence, rules.japaneseKanji), rules, page);
 }

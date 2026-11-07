@@ -61,6 +61,39 @@ new HighlightSession({ highlighter: page, ranges: renderer instanceof RangeHighl
 Two extensions on one page each register their own highlight names. Prefix them (`wkh-…`, `hh-…`)
 so they don't collide.
 
+## Two extensions together
+
+A Japanese highlighter and a Chinese one can work together (`coexistence.ts`).
+
+**Who highlights what is one choice between them.** For each kind of text (Japanese, Chinese,
+could be either), one extension highlights it and the other leaves it to it. Their settings show
+the other extension by name and logo ("Highlight / HanziHero"), and changing it in one sets the
+opposite in the other. That's done with runtime messages between the extensions
+(`PARTNER_MESSAGE`: `about`, `choose`). When they first find each other, any text both would
+highlight goes to its owner (`TEXT_OWNER`: Japanese and could-be-either to the Japanese one,
+Chinese to the Chinese one).
+
+**They find each other on pages.** Messaging another extension needs its id, which isn't fixed
+for unpacked installs. So on every page each says it's installed, with its id
+(`announcePresence`), and keeps the other's.
+
+**On a page**, each says it's highlighting (`PagePeers`: `hello`, answered, and `bye` when it
+stops), with its choices. A mixed paragraph is split by sentence, and text that could be either
+follows its page first. If both still say they highlight the same text (their settings out of
+step), it goes to its owner there (`shareChoices`).
+
+```ts
+announcePresence({ extensionId: browser.runtime.id, name: 'HanziHero Companion', role: 'chinese' }, other => remember(other));
+
+const peers = new PagePeers({ id: 'hh', name: 'HanziHero Companion', role: 'chinese', share: true, choices });
+peers.start();                       // only while highlighting: a page it doesn't run on isn't left to it
+const onPage = shareChoices(choices, 'chinese', peers.partner());
+peers.onChange(() => rehighlight()); // the other came, left or changed
+```
+
+The page can see these events. Nothing private goes in them, but a site could tell the
+extensions are there, or fake a hello to turn some highlights off.
+
 ## Develop
 
 The extensions install it from this folder (`"cjk-highlighter": "file:../../cjk-highlighter"`), so

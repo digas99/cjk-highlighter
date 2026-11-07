@@ -31,9 +31,21 @@ let outlined = false;
 let closed = false;
 
 /** `namespace`: the extension's prefix (two extensions on a page each have their own panel). */
-export function mountLanguageDebug(gate: LanguageGate, options: { namespace?: string } = {}): void {
+export type LanguageDebugOptions = {
+	/** the extension's prefix (two extensions on a page each have their own panel) */
+	namespace?: string;
+	/** whose panel it is, on its first line */
+	label?: string;
+	/** how far up from the bottom (px): two extensions' panels one above the other */
+	bottom?: number;
+	/** one more line, read on each refresh (e.g. who the page is shared with: coexistence.ts) */
+	extra?: () => string;
+};
+
+export function mountLanguageDebug(gate: LanguageGate, options: LanguageDebugOptions = {}): void {
 	unmountLanguageDebug();
 	ids = names(options.namespace ?? 'cjkh');
+	extraLine = options.extra;
 	if (closed) return;
 	const host = document.createElement('div');
 	host.id = ids.host;
@@ -64,8 +76,8 @@ export function mountLanguageDebug(gate: LanguageGate, options: { namespace?: st
 	button:hover { background: rgba(255, 255, 255, 0.2); }
 	button[aria-pressed="true"] { background: #4f6bed; }
 </style>
-<div class="panel" role="status">
-	<div class="lines"><div class="line page"></div><div class="line paragraphs"></div><div class="line rules"></div></div>
+<div class="panel" role="status" style="bottom: ${options.bottom ?? 8}px">
+	<div class="lines">${options.label ? `<div class="line"><b>${escapeHtml(options.label)}</b></div>` : ''}<div class="line page"></div><div class="line paragraphs"></div><div class="line rules"></div><div class="line extra"></div></div>
 	<div class="actions">
 		<button type="button" class="outline" aria-pressed="false" title="Outline each paragraph in its class's color">Outline</button>
 		<button type="button" class="close" title="Hide (until the page is loaded again)">×</button>
@@ -122,11 +134,17 @@ function contentLine(summary: LanguageSummary): string {
 
 function rulesLine(summary: LanguageSummary): string {
 	const word = (choice: string) => (choice === 'skip' ? 'not highlighted' : 'highlighted');
-	return `<span class="tag">Rules here:</span> Chinese ${word(summary.chinese)} · could be either ${word(summary.unclear)} <span class="tag">(site list applied)</span>`;
+	const japanese = summary.japanese === 'skip' ? `Japanese ${word(summary.japanese)} · ` : '';
+	return `<span class="tag">Rules here:</span> ${japanese}Chinese ${word(summary.chinese)} · could be either ${word(summary.unclear)} <span class="tag">(site list applied)</span>`;
 }
+
+let extraLine: (() => string) | undefined;
 
 function render(root: ShadowRoot, gate: LanguageGate): void {
 	const summary = gate.summary();
+	const extra = root.querySelector<HTMLElement>('.extra')!;
+	extra.textContent = extraLine?.() ?? '';
+	extra.hidden = !extra.textContent;
 	root.querySelector('.page')!.innerHTML = pageLine(summary);
 	root.querySelector('.paragraphs')!.innerHTML = contentLine(summary);
 	root.querySelector('.rules')!.innerHTML = rulesLine(summary);
@@ -151,4 +169,8 @@ function outline(gate: LanguageGate): void {
 function clearOutlines(): void {
 	document.getElementById(ids.outlineStyle)?.remove();
 	for (const element of document.querySelectorAll(`[${ids.outlineAttribute}]`)) element.removeAttribute(ids.outlineAttribute);
+}
+
+function escapeHtml(text: string): string {
+	return text.replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char] ?? char);
 }

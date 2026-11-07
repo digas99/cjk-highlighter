@@ -45,6 +45,11 @@ export class PageHighlighter<T = unknown> {
 		return this.matcher.isActive();
 	}
 
+	/** The language gate, set after the highlighter is made (once it's known who shares the page). */
+	setGate(gate: LanguageGate | null): void {
+		this.options.gate = gate;
+	}
+
 	hasMatch(text: string): boolean {
 		return this.matcher.hasMatch(text);
 	}

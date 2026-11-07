@@ -39,4 +39,24 @@ export {
 	type LanguageSummary,
 	type TextLanguage,
 } from './textLanguage';
-export { mountLanguageDebug, unmountLanguageDebug } from './languageDebug';
+export { mountLanguageDebug, unmountLanguageDebug, type LanguageDebugOptions } from './languageDebug';
+export {
+	CLASSIFIER_VERSION,
+	PARTNER_MESSAGE,
+	PROTOCOL_VERSION,
+	PagePeers,
+	TEXT_OWNER,
+	announcePresence,
+	defaultChoices,
+	describePeers,
+	oppositeChoice,
+	parsePartnerRequest,
+	shareChoices,
+	type LanguageChoices,
+	type PartnerAbout,
+	type PartnerIdentity,
+	type PartnerRequest,
+	type PeerInfo,
+	type PeerRole,
+	type TextKind,
+} from './coexistence';
